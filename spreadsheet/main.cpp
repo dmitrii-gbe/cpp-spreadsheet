@@ -1,6 +1,8 @@
+#include <limits>
 #include "common.h"
 #include "formula.h"
 #include "test_runner_p.h"
+#include <ostream>
 
 inline std::ostream& operator<<(std::ostream& output, Position pos) {
     return output << "(" << pos.row << ", " << pos.col << ")";
@@ -24,9 +26,6 @@ inline std::ostream& operator<<(std::ostream& output, const CellInterface::Value
 }
 
 namespace {
-std::string ToString(FormulaError::Category category) {
-    return std::string(FormulaError(category).ToString());
-}
 
 void TestPositionAndStringConversion() {
     auto testSingle = [](Position pos, std::string_view str) {
@@ -197,10 +196,12 @@ void TestErrorValue() {
     auto sheet = CreateSheet();
     sheet->SetCell("E2"_pos, "A1");
     sheet->SetCell("E4"_pos, "=E2");
+    
     ASSERT_EQUAL(sheet->GetCell("E4"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Value));
 
     sheet->SetCell("E2"_pos, "3D");
+
     ASSERT_EQUAL(sheet->GetCell("E4"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Value));
 }
@@ -215,6 +216,13 @@ void TestErrorDiv0() {
                  CellInterface::Value(FormulaError::Category::Div0));
 
     sheet->SetCell("A1"_pos, "=1e+200/1e-200");
+
+
+    //std::cout << sheet->GetCell("E4"_pos)->GetValue() << std::endl;
+    // if (std::holds_alternative<FormulaError>(sheet->GetCell("A1"_pos)->GetValue())){
+    //     std::cout << std::get<FormulaError>(sheet->GetCell("A1"_pos)->GetValue()).ToString() << std::endl;
+    // }
+
     ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Div0));
 
@@ -250,7 +258,7 @@ void TestErrorDiv0() {
 void TestEmptyCellTreatedAsZero() {
     auto sheet = CreateSheet();
     sheet->SetCell("A1"_pos, "=B2");
-    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0));
+    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0.0));
 }
 
 void TestFormulaInvalidPosition() {
@@ -277,9 +285,7 @@ void TestPrint() {
     auto sheet = CreateSheet();
     sheet->SetCell("A2"_pos, "meow");
     sheet->SetCell("B2"_pos, "=35");
-
     ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{2, 2}));
-
     std::ostringstream texts;
     sheet->PrintTexts(texts);
     ASSERT_EQUAL(texts.str(), "\t\nmeow\t=35\n");
@@ -336,7 +342,6 @@ void TestCellCircularReferences() {
     sheet->SetCell("E4"_pos, "=X9");
     sheet->SetCell("X9"_pos, "=M6");
     sheet->SetCell("M6"_pos, "Ready");
-
     bool caught = false;
     try {
         sheet->SetCell("M6"_pos, "=E2");
@@ -370,4 +375,5 @@ int main() {
     RUN_TEST(tr, TestCellReferences);
     RUN_TEST(tr, TestFormulaIncorrect);
     RUN_TEST(tr, TestCellCircularReferences);
+    return 0;
 }

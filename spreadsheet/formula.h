@@ -2,7 +2,10 @@
 
 #include "common.h"
 
+#include "FormulaAST.h"
+
 #include <memory>
+#include <variant>
 #include <vector>
 
 // Формула, позволяющая вычислять и обновлять арифметическое выражение.
